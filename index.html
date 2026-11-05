@@ -2,12 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
-<style>body{margin:0}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>HelpDesk TI</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -139,6 +135,9 @@ table.list{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 </style>
 
+<style>[hidden]{display:none!important}body{margin:0}</style>
+</head>
+<body>
 <header class="top"><div class="wrap">
   <div class="brand"><b>HelpDesk TI</b><span>Mesa de ayuda · ITIL 4</span><span class="mode" id="mode" data-s="wait">Conectando…</span></div>
   <nav aria-label="Módulos">
@@ -162,6 +161,7 @@ table.list{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
     <div class="grid2">
       <p class="banner" id="roNote" hidden>Tienes acceso de solo lectura: puedes ver los tickets y el tablero, pero no registrar ni modificar. Pide al dueño de la página que te comparta con permiso de edición.</p>
       <form class="panel" id="fNew" novalidate>
+        <label for="fReg">Registrado por <small>Integrante del equipo que crea el ticket</small><input id="fReg" list="regList" placeholder="Tu nombre"><datalist id="regList"></datalist></label>
         <div class="row">
           <label for="fUser">Solicitante<input id="fUser" required placeholder="Nombre de quien reporta"></label>
           <label for="fArea">Área<select id="fArea" required></select></label>
@@ -246,7 +246,7 @@ table.list{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
     <textarea id="csvOut" hidden aria-label="Datos CSV" style="margin-top:10px;min-height:120px;font-family:var(--mono);font-size:12px"></textarea>
   </section>
 
-  <p class="foot">Prototipo académico · Proyecto HelpDesk TI · Gerencia de Proyectos Informáticos, CUN · 2026. Los datos se guardan solo en este navegador.</p>
+  <p class="foot">Prototipo académico · Proyecto HelpDesk TI · Gerencia de Proyectos Informáticos, CUN · 2026. Los tickets se guardan en la base de datos del proyecto y los ve todo el equipo.</p>
 </main>
 
 <div class="scrim" id="scrim" hidden></div>
@@ -254,6 +254,7 @@ table.list{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 (function(){
 const KEY='helpdeskti.v1';
@@ -323,50 +324,42 @@ function seed(){
   return {seq:T.length,tickets:T,kb:KB0.map((k,i)=>({id:i+1,title:k[0],cat:k[1],steps:k[2]})),demo:true};
 }
 db=load(); if(!db||!Array.isArray(db.tickets)){db=seed();save()}
-let CDB=null, USER=null, MODE='local', ME=null, CAN_WRITE=true, IS_OWNER=true;
+const SB_URL='https://jkqmmqaiaxxmyylcngmc.supabase.co', SB_KEY='sb_publishable_-F_9_BcSuZJ4vMiqMrLcfA_ILnRbJw6';
+let SB=null, MODE='local', CAN_WRITE=true, IS_OWNER=true;
 const clone=o=>JSON.parse(JSON.stringify(o));
 function setMode(s,txt){const m=$('#mode');m.dataset.s=s;m.textContent=txt}
 setMode('wait','Conectando…');
 async function persistT(t){
   if(MODE!=='shared'){save();return true}
-  try{await CDB.collection('tickets').doc(fmtId(t.id)).set(clone(t));return true}
-  catch(e){writeFail(e);return false}}
+  const {error}=await SB.from('tickets').upsert({id:t.id,data:clone(t),updated_at:new Date().toISOString()});
+  if(error){writeFail(error);return false} return true}
 async function persistK(k){
   if(MODE!=='shared'){save();return true}
-  try{await CDB.collection('kb').doc('KB-'+String(k.id).padStart(3,'0')).set(clone(k));return true}
-  catch(e){writeFail(e);return false}}
-function writeFail(e){const c=e&&e.code;
-  if(c==='invalid_argument'){CAN_WRITE=false;applyWrite();toast('No tienes permiso para modificar los datos compartidos.')}
-  else if(c==='quota_exceeded')toast('La base de datos está llena. Borra tickets antiguos para registrar nuevos.');
-  else toast('No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.')}
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const {error}=await SB.from('kb').upsert({id:k.id,data:clone(k)});
+  if(error){writeFail(error);return false} return true}
+function writeFail(e){toast('No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.')}
 async function nextId(){
   const maxLocal=Math.max(0,...db.tickets.map(t=>t.id));
   if(MODE!=='shared'){db.seq=Math.max(db.seq||0,maxLocal)+1;return db.seq}
-  const ref=CDB.doc('meta/seq');
-  for(let i=0;i<6;i++){
-    try{const r=await ref.acquire({holder:ME||('tab-'+Math.random().toString(36).slice(2)),ttlMs:4000});
-      if(r.acquired){const s=await ref.get();const n=Math.max(s.exists?(s.data().n||0):0,maxLocal)+1;await ref.set({n});return n}}catch(e){}
-    await sleep(300+Math.random()*500)}
-  return maxLocal+1}
-function applyWrite(){const ro=MODE==='shared'&&!CAN_WRITE;$('#roNote').hidden=!ro;
-  document.querySelectorAll('#fNew input,#fNew select,#fNew textarea,#fNew button,#btnKbNew').forEach(el=>el.disabled=ro)}
+  const {data,error}=await SB.rpc('next_ticket_id');
+  if(error||typeof data!=='number')return maxLocal+1;
+  return data}
+function applyWrite(){}
+async function loadAll(){
+  const [t,k]=await Promise.all([SB.from('tickets').select('id,data').order('id'),SB.from('kb').select('id,data').order('id')]);
+  if(t.error)throw t.error;
+  db.tickets=t.data.map(r=>r.data);db.kb=(k.data||[]).map(r=>r.data);
+  rerender()}
+let reloadT=null;const scheduleReload=()=>{clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().catch(()=>{}),300)};
 async function connect(){
-  let cdb=null;
-  try{cdb=window.claude&&window.claude.use?await window.claude.use('db'):null}catch(e){cdb=null}
-  if(!cdb){setMode('off','Solo en este navegador');return}
-  CDB=cdb;MODE='shared';db={seq:0,tickets:[],kb:[]};
-  try{USER=await window.claude.use('user')}catch(e){USER=null}
-  if(USER){try{ME=await USER.id()}catch(e){}try{IS_OWNER=!!USER.isOwner()}catch(e){IS_OWNER=false}
-    try{const w=await USER.can('data.write');if(w===false)CAN_WRITE=false}catch(e){}}
-  else IS_OWNER=false;
-  applyWrite();rerender();
-  let ok=false;const timer=setTimeout(()=>{if(!ok)setMode('off','Sin conexión con la base de datos')},10000);
-  CDB.collection('tickets').onSnapshot(snap=>{
-    db.tickets=snap.docs.map(d=>clone(d.data())).sort((a,b)=>a.id-b.id);
-    if(!snap.metadata.fromCache){ok=true;clearTimeout(timer);setMode('on','En línea · datos compartidos')}
-    rerender()},e=>{clearTimeout(timer);setMode('off','Sin conexión con la base de datos')});
-  CDB.collection('kb').onSnapshot(snap=>{db.kb=snap.docs.map(d=>clone(d.data())).sort((a,b)=>a.id-b.id);if(!$('#v-conocimiento').hidden)renderKb()},()=>{});
+  if(!window.supabase||!window.supabase.createClient){setMode('off','Solo en este navegador');return}
+  SB=window.supabase.createClient(SB_URL,SB_KEY);
+  const prev=db;db={seq:0,tickets:[],kb:[]};MODE='shared';
+  try{await loadAll();setMode('on','En línea · datos compartidos')}
+  catch(e){MODE='local';db=prev;rerender();setMode('off','Sin conexión con la base de datos');return}
+  SB.channel('helpdesk').on('postgres_changes',{event:'*',schema:'public',table:'tickets'},scheduleReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:'kb'},scheduleReload).subscribe();
+  setInterval(()=>{if(!document.hidden)scheduleReload()},30000);
 }
 function rerender(){refreshCommon();
   if(!$('#v-tickets').hidden)renderList();
@@ -398,7 +391,7 @@ function route(){if(typeof cur!=='undefined'&&cur)closeT();let v=location.hash.s
 function refreshCommon(){const n=db.tickets.filter(t=>OPEN.includes(t.state)).length;$('#nOpen').textContent=n?String(n):'';
   const b=$('#demoBanner'), demo=db.tickets.filter(t=>t.demo).length; b.hidden=!demo;
   $('#demoTxt').textContent=`Hay ${demo} tickets de ejemplo generados para demostrar el prototipo.`;
-  $('#resetBox').hidden=MODE==='shared'&&!IS_OWNER}
+}
 
 // formulario
 function opts(sel,arr){$(sel).innerHTML=arr.map(a=>`<option>${esc(a)}</option>`).join('')}
@@ -416,13 +409,14 @@ let tStart=null,tInt=null;
 function tick(){const s=tStart?Math.floor((Date.now()-tStart)/1000):0;$('#timer').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 $('#fNew').addEventListener('input',e=>{if(!tStart&&e.target.matches('input:not([type=radio]),textarea')){tStart=Date.now();tInt=setInterval(tick,500)}preview()});
 $('#fNew').addEventListener('change',preview);
-$('#fNew').addEventListener('reset',()=>setTimeout(()=>{clearInterval(tInt);tStart=null;tick();preview();$('#fErr').hidden=true}));
+$('#fNew').addEventListener('reset',()=>setTimeout(()=>{try{$('#fReg').value=localStorage.getItem('hd.reg')||''}catch(_){}clearInterval(tInt);tStart=null;tick();preview();$('#fErr').hidden=true}));
 $('#fNew').addEventListener('submit',async e=>{e.preventDefault();if(MODE==='shared'&&!CAN_WRITE)return;
   const user=$('#fUser').value.trim(),title=$('#fTitle').value.trim();
   if(!user||!title){const er=$('#fErr');er.textContent='Escribe el nombre del solicitante y el asunto para crear el ticket.';er.hidden=false;(user?$('#fTitle'):$('#fUser')).focus();return}
   const i=document.querySelector('[name=imp]:checked').value,u=document.querySelector('[name=urg]:checked').value,p=MATRIX[i][u],now=Date.now();
   const btn=e.target.querySelector('[type=submit]');btn.disabled=true;const nid=await nextId();btn.disabled=false;
-  const t={id:nid,by:ME||null,type:$('#fType').value,user,area:$('#fArea').value,cat:$('#fCat').value,title,desc:$('#fDesc').value.trim(),imp:i,urg:u,prio:p,created:now,regSec:tStart?Math.round((now-tStart)/1000):null,tech:'',state:'Nuevo',responded:null,resolved:null,closed:null,waitMs:0,waitStart:null,hist:[{t:now,m:'Ticket creado ('+p+')'}]};
+  const reg=$('#fReg').value.trim();try{localStorage.setItem('hd.reg',reg)}catch(_){}
+  const t={id:nid,by:reg||null,type:$('#fType').value,user,area:$('#fArea').value,cat:$('#fCat').value,title,desc:$('#fDesc').value.trim(),imp:i,urg:u,prio:p,created:now,regSec:tStart?Math.round((now-tStart)/1000):null,tech:'',state:'Nuevo',responded:null,resolved:null,closed:null,waitMs:0,waitStart:null,hist:[{t:now,m:'Ticket creado ('+p+')'}]};
   if(MODE!=='shared')db.tickets.push(t);const okw=await persistT(t);if(!okw)return;$('#fNew').reset();refreshCommon();
   toast(`Ticket ${fmtId(t.id)} creado con prioridad ${p} · ${PN[p]}`);
 });
@@ -451,7 +445,7 @@ function openT(id){const t=db.tickets.find(x=>x.id===id);if(!t)return;cur=t;cons
   const kb=db.kb.filter(k=>k.cat===t.cat);
   $('#drawer').innerHTML=`<header><div><span class="id">${fmtId(t.id)}</span> · <span class="muted">${esc(t.type)}</span><h2>${esc(t.title)}</h2></div><button class="btn quiet sm" id="dClose">Cerrar</button></header>
   <div class="actions">${prioTag(t.prio)}<span class="st ${t.state.replace(' ','')}">${t.state}</span><span class="sla ${s.c}">${s.txt}</span></div>
-  <dl class="kv"><dt>Solicitante</dt><dd>${esc(t.user)} · ${esc(t.area)}</dd><dt>Categoría</dt><dd>${esc(t.cat)}</dd><dt>Impacto / urgencia</dt><dd>${t.imp} / ${t.urg}</dd><dt>ANS</dt><dd>Respuesta ${SLA[t.prio].r} h · Solución ${SLA[t.prio].s} h</dd><dt>Creado</dt><dd>${fmtDT(t.created)}</dd>${t.regSec?`<dt>Tiempo de registro</dt><dd>${t.regSec} s</dd>`:''}${t.by?'<dt>Registrado por</dt><dd id="dBy">…</dd>':''}</dl>
+  <dl class="kv"><dt>Solicitante</dt><dd>${esc(t.user)} · ${esc(t.area)}</dd><dt>Categoría</dt><dd>${esc(t.cat)}</dd><dt>Impacto / urgencia</dt><dd>${t.imp} / ${t.urg}</dd><dt>ANS</dt><dd>Respuesta ${SLA[t.prio].r} h · Solución ${SLA[t.prio].s} h</dd><dt>Creado</dt><dd>${fmtDT(t.created)}</dd>${t.regSec?`<dt>Tiempo de registro</dt><dd>${t.regSec} s</dd>`:''}${t.by?`<dt>Registrado por</dt><dd>${esc(t.by)}</dd>`:''}</dl>
   ${t.desc?`<p style="margin:0">${esc(t.desc)}</p>`:''}
   <label for="dTech">Técnico asignado<select id="dTech"><option value="">Sin asignar</option>${TECS.map(x=>`<option ${x===t.tech?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
   <div><div style="font-weight:500;font-size:13px;margin-bottom:6px">Estado</div><div class="states">${STATES.map(x=>`<button class="btn quiet sm" data-s="${x}" aria-pressed="${x===t.state}">${x}</button>`).join('')}</div>
@@ -461,7 +455,6 @@ function openT(id){const t=db.tickets.find(x=>x.id===id);if(!t)return;cur=t;cons
   ${kb.length?`<div><div style="font-weight:500;font-size:13px;margin-bottom:6px">Soluciones sugeridas</div>${kb.map(k=>`<div style="font-size:13.5px">• <a href="#conocimiento" data-kb="${k.id}">${esc(k.title)}</a></div>`).join('')}</div>`:''}
   <div><div style="font-weight:500;font-size:13px;margin-bottom:6px">Historial</div><ul class="hist">${t.hist.slice().reverse().map(h=>`<li><time>${fmtDT(h.t)}</time><span>${esc(h.m)}</span></li>`).join('')}</ul></div>`;
   $('#drawer').hidden=false;$('#scrim').hidden=false;
-  if(t.by&&USER&&USER.profiles){USER.profiles([t.by]).then(ps=>{const el=$('#dBy');if(el)el.textContent=(ps&&ps[t.by]&&ps[t.by].name)||'Integrante del equipo'}).catch(()=>{const el=$('#dBy');if(el)el.textContent='Integrante del equipo'})}
   if(document.activeElement===document.body||!$('#drawer').contains(document.activeElement))$('#dClose').focus()}
 function closeT(){$('#drawer').hidden=true;$('#scrim').hidden=true;cur=null}
 $('#scrim').addEventListener('click',closeT);
@@ -526,17 +519,18 @@ $('#btnCsv').addEventListener('click',()=>{const txt=csv(),out=$('#csvOut');
 
 // reinicio
 const BTN='<button class="btn quiet sm" data-r="ask">Borrar datos y empezar piloto</button>';
-const ASK='<div class="confirm"><span>¿Borrar todos los tickets de ejemplo? La base de conocimiento se conserva.</span><button class="btn danger sm" data-r="yes">Sí, borrar</button><button class="btn quiet sm" data-r="no">Cancelar</button></div>';
-$('#resetBox').addEventListener('click',e=>{const r=e.target.dataset.r;if(!r)return;
-  if(r==='ask'){$('#resetBox').innerHTML=ASK;return}
+const ASK='<div class="confirm"><span>Esto borra todos los tickets para todo el equipo. Escribe el PIN del gerente del proyecto:</span><input id="rPin" type="password" inputmode="numeric" aria-label="PIN" style="width:90px"><button class="btn danger sm" data-r="yes">Borrar</button><button class="btn quiet sm" data-r="no">Cancelar</button></div>';
+$('#resetBox').addEventListener('click',async e=>{const r=e.target.dataset.r;if(!r)return;
+  if(r==='ask'){$('#resetBox').innerHTML=ASK;$('#rPin').focus();return}
   if(r==='yes'){
-    if(MODE==='shared'){const ids=db.tickets.map(t=>fmtId(t.id));$('#resetBox').innerHTML='<span class="muted">Borrando…</span>';
-      (async()=>{for(const id of ids){try{await CDB.collection('tickets').doc(id).delete()}catch(e){}}try{await CDB.doc('meta/seq').set({n:0})}catch(e){}
-        $('#resetBox').innerHTML=BTN;toast('Datos borrados. Listo para la prueba piloto.')})();return}
-    db={seq:0,tickets:[],kb:db.kb,demo:false};save();refreshCommon();route();toast('Datos borrados. Listo para la prueba piloto.')}
+    if(MODE==='shared'){const pin=$('#rPin').value.trim();const {error}=await SB.rpc('reset_tickets',{pin});
+      if(error){toast('PIN incorrecto. No se borró nada.');return}
+      await loadAll();toast('Datos borrados. Listo para la prueba piloto.')}
+    else{db={seq:0,tickets:[],kb:db.kb,demo:false};save();refreshCommon();route();toast('Datos borrados. Listo para la prueba piloto.')}}
   $('#resetBox').innerHTML=BTN});
 
 window.addEventListener('hashchange',route);
+try{$('#fReg').value=localStorage.getItem('hd.reg')||''}catch(_){}
 refreshCommon();route();connect();
 setInterval(()=>{if(!$('#v-tickets').hidden&&!cur)renderList()},60000);
 })();

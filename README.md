@@ -4,6 +4,8 @@ Prototipo de mesa de ayuda basado en ITIL 4 para registrar, priorizar, asignar y
 
 Proyecto aplicado del curso **Gerencia de Proyectos Informáticos** – CUN, 2026.
 
+**Página en línea:** https://yulian-9.github.io/HelpDesk-TI/
+
 ## Módulos
 
 1. **Registro de tickets.** Formulario con un cronómetro que mide el tiempo de registro.
@@ -14,17 +16,16 @@ Proyecto aplicado del curso **Gerencia de Proyectos Informáticos** – CUN, 202
 
 ## Cómo usarlo
 
-Versión en línea (datos compartidos por todo el equipo): publicada como página web del proyecto.
+Abre la página en línea desde cualquier navegador. Todo el equipo ve los mismos tickets y los cambios aparecen en tiempo real.
 
-Versión local: abre `index.html` en cualquier navegador; en ese modo los tickets se guardan solo en ese navegador.
-
-Al abrirlo trae 40 casos de prueba simulados. Para la prueba piloto, usa **Borrar datos y empezar piloto**.
+La base de datos trae 40 casos de prueba simulados. Para la prueba piloto, el gerente del proyecto los borra con **Borrar datos y empezar piloto**.
 
 ## Tecnologías
 
 - HTML5, CSS3 y JavaScript
 - Chart.js para los gráficos
-- Almacenamiento local del navegador
+- Supabase (PostgreSQL) como base de datos en la nube, con actualización en tiempo real
+- GitHub Pages para publicar la página
 
 ## Equipo
 
