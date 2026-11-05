@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<style>body{margin:0}</style>
+<title>HelpDesk TI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: consola de mesa de ayuda — barra superior con módulos, área de trabajo de una columna, cajón lateral para el detalle del ticket */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface-2:#eaeef4; --line:#d5dce6;
+  --fg:#1b2533; --muted:#5b6778; --accent:#1f5fae; --accent-ink:#ffffff; --accent-soft:#dde8f6;
+  --p1:#c62f2f; --p1-bg:#fbe3e3; --p2:#c4621a; --p2-bg:#fcebdc; --p3:#9a7a06; --p3-bg:#fbf3d3; --p4:#2f7d4a; --p4-bg:#dff1e5;
+  --ok:#2f7d4a; --warn:#b26a00; --bad:#c62f2f;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f141b; --surface:#161d27; --surface-2:#1d2633; --line:#2b3646;
+  --fg:#e3e9f1; --muted:#97a3b4; --accent:#6aa5ef; --accent-ink:#0b1320; --accent-soft:#1c2c42;
+  --p1:#f07a7a; --p1-bg:#3a1c1e; --p2:#f0a067; --p2-bg:#3a2717; --p3:#e3c654; --p3-bg:#352e12; --p4:#6fcb8e; --p4-bg:#16301f;
+  --ok:#6fcb8e; --warn:#f0b357; --bad:#f07a7a; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --surface:#161d27; --surface-2:#1d2633; --line:#2b3646;
+  --fg:#e3e9f1; --muted:#97a3b4; --accent:#6aa5ef; --accent-ink:#0b1320; --accent-soft:#1c2c42;
+  --p1:#f07a7a; --p1-bg:#3a1c1e; --p2:#f0a067; --p2-bg:#3a2717; --p3:#e3c654; --p3-bg:#352e12; --p4:#6fcb8e; --p4-bg:#16301f;
+  --ok:#6fcb8e; --warn:#f0b357; --bad:#f07a7a; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14.5px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding-block:10px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin-right:auto}
+.brand b{font-weight:700;font-size:17px;letter-spacing:-.01em}
+.brand .mode{font-family:var(--sans);text-transform:none;letter-spacing:0;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.brand .mode[data-s="on"]{color:var(--ok);border-color:var(--ok)}
+.brand .mode[data-s="off"]{color:var(--warn);border-color:var(--warn)}
+.brand span{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;padding:7px 12px;border-radius:6px;font-weight:500;font-size:14px}
+nav a:hover{background:var(--surface-2);color:var(--fg)}
+nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+nav a .n{font-family:var(--mono);font-size:11.5px;margin-left:5px;opacity:.8}
+main{padding-block:22px 60px}
+.banner{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--surface-2);border:1px dashed var(--line);border-radius:var(--r);padding:10px 14px;margin-bottom:18px;font-size:13.5px}
+.banner p{margin:0;flex:1;min-width:220px}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}}
+form.panel{padding:18px;display:grid;gap:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.row{grid-template-columns:1fr}}
+label{display:grid;gap:5px;font-weight:500;font-size:13px}
+label small{font-weight:400;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
+textarea{min-height:84px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible,.trow:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+fieldset{border:0;padding:0;margin:0;display:grid;gap:6px}
+legend{font-weight:500;font-size:13px;margin-bottom:5px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label{border:1px solid var(--line);border-radius:6px;padding:7px 9px;cursor:pointer;font-weight:400;background:var(--bg);gap:1px}
+.seg label b{font-weight:600;font-size:13.5px}
+.seg label small{font-size:11.5px;line-height:1.3}
+.seg input:checked+label{border-color:var(--accent);background:var(--accent-soft)}
+.seg input:focus-visible+label{outline:2px solid var(--accent)}
+.btn{font:inherit;font-weight:600;font-size:14px;border-radius:6px;padding:9px 16px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.quiet{background:transparent;border-color:var(--line);color:var(--fg);font-weight:500}
+.btn.danger{background:transparent;border-color:var(--bad);color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.aside{padding:18px;display:grid;gap:14px}
+.aside h3{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.prio{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-weight:600;font-size:12px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.prio.P1{color:var(--p1);background:var(--p1-bg)}.prio.P2{color:var(--p2);background:var(--p2-bg)}.prio.P3{color:var(--p3);background:var(--p3-bg)}.prio.P4{color:var(--p4);background:var(--p4-bg)}
+.big-prio{display:flex;gap:12px;align-items:center}
+.big-prio .prio{font-size:15px;padding:5px 12px}
+.matrix{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)}
+.matrix th,.matrix td{border:1px solid var(--line);padding:5px;text-align:center}
+.matrix th{font-family:var(--sans);font-weight:500;color:var(--muted);background:var(--surface-2)}
+.matrix td.on{outline:2px solid var(--accent);outline-offset:-2px;font-weight:700}
+.timer{font-family:var(--mono);font-size:26px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13.5px}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.filters{display:flex;flex-wrap:wrap;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+.filters input{flex:1 1 200px;width:auto}.filters select{width:auto;flex:0 1 auto}
+.tablewrap{overflow-x:auto}
+table.list{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+.list th{text-align:left;font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.list td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.trow{cursor:pointer}.trow:hover td{background:var(--surface-2)}
+.id{font-family:var(--mono);font-weight:500;font-size:12.5px;white-space:nowrap}
+.st{display:inline-block;font-size:12px;font-weight:500;padding:2px 8px;border-radius:4px;border:1px solid var(--line);white-space:nowrap}
+.st.Nuevo{border-color:var(--accent);color:var(--accent)}
+.st.Resuelto,.st.Cerrado{color:var(--muted)}
+.sla{font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sla.ok{color:var(--ok)}.sla.warn{color:var(--warn)}.sla.bad{color:var(--bad);font-weight:600}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(480px,100%);background:var(--surface);border-left:1px solid var(--line);z-index:20;overflow-y:auto;box-shadow:-12px 0 32px rgba(0,0,0,.18);padding:calc(18px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) 20px;display:grid;gap:16px;align-content:start}
+.scrim{position:fixed;inset:0;background:rgba(10,15,25,.35);z-index:15}
+.drawer header{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.drawer h2{margin:2px 0 0;font-size:18px;text-wrap:balance}
+.hist{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13px}
+.hist li{display:grid;grid-template-columns:118px 1fr;gap:10px;border-left:2px solid var(--line);padding-left:10px}
+.hist time{font-family:var(--mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.states{display:flex;flex-wrap:wrap;gap:6px}
+.states button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.kb{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.kb article{padding:14px 16px;display:grid;gap:6px;align-content:start}
+.kb h3{margin:0;font-size:15px}
+.kb .cat{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.kb ol{margin:0;padding-left:18px;font-size:13.5px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{padding:14px 16px;display:grid;gap:2px}
+.kpi .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.kpi .val{font-family:var(--mono);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .hint{font-size:12.5px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.charts{grid-template-columns:1fr}}
+.chart{padding:14px 16px}
+.chart h3{margin:0 0 8px;font-size:14px}
+.chart .box{position:relative;height:230px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:6px;font-weight:500;z-index:30;max-width:calc(100% - 32px)}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px}
+.muted{color:var(--muted)}
+.foot{margin-top:28px;color:var(--muted);font-size:12.5px}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><b>HelpDesk TI</b><span>Mesa de ayuda · ITIL 4</span><span class="mode" id="mode" data-s="wait">Conectando…</span></div>
+  <nav aria-label="Módulos">
+    <a href="#nuevo" data-v="nuevo">Nuevo ticket</a>
+    <a href="#tickets" data-v="tickets">Tickets<span class="n" id="nOpen"></span></a>
+    <a href="#conocimiento" data-v="conocimiento">Base de conocimiento</a>
+    <a href="#tablero" data-v="tablero">Tablero</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <div class="banner" id="demoBanner" hidden>
+    <p><b>Casos de prueba simulados.</b> <span id="demoTxt"></span> Para la prueba piloto, borren los datos y registren sus propios tickets.</p>
+    <div class="actions" id="resetBox"><button class="btn quiet sm" data-r="ask">Borrar datos y empezar piloto</button></div>
+  </div>
+
+  <!-- NUEVO -->
+  <section id="v-nuevo" hidden>
+    <h1>Registrar incidencia o solicitud</h1>
+    <p class="sub">El sistema calcula la prioridad con la matriz impacto × urgencia y le asigna su acuerdo de nivel de servicio (ANS).</p>
+    <div class="grid2">
+      <p class="banner" id="roNote" hidden>Tienes acceso de solo lectura: puedes ver los tickets y el tablero, pero no registrar ni modificar. Pide al dueño de la página que te comparta con permiso de edición.</p>
+      <form class="panel" id="fNew" novalidate>
+        <div class="row">
+          <label for="fUser">Solicitante<input id="fUser" required placeholder="Nombre de quien reporta"></label>
+          <label for="fArea">Área<select id="fArea" required></select></label>
+        </div>
+        <div class="row">
+          <label for="fType">Tipo<select id="fType"><option>Incidencia</option><option>Solicitud de servicio</option></select></label>
+          <label for="fCat">Categoría<select id="fCat" required></select></label>
+        </div>
+        <label for="fTitle">Asunto<input id="fTitle" required maxlength="90" placeholder="Ej.: La impresora del piso 2 no imprime"></label>
+        <label for="fDesc">Descripción <small>Qué pasa, desde cuándo y a quién afecta</small><textarea id="fDesc"></textarea></label>
+        <fieldset><legend>Impacto: ¿a cuántos afecta?</legend><div class="seg" id="segImp"></div></fieldset>
+        <fieldset><legend>Urgencia: ¿qué tan rápido se necesita?</legend><div class="seg" id="segUrg"></div></fieldset>
+        <p class="muted" id="fErr" role="alert" hidden></p>
+        <div class="actions"><button class="btn" type="submit">Crear ticket</button><button class="btn quiet" type="reset">Limpiar</button></div>
+      </form>
+      <div class="panel aside">
+        <h3>Prioridad calculada</h3>
+        <div class="big-prio"><span class="prio P4" id="pvPrio">P4 · Baja</span><span class="muted" id="pvSla"></span></div>
+        <table class="matrix" aria-label="Matriz de prioridad">
+          <tr><th>Impacto \ Urgencia</th><th>Alta</th><th>Media</th><th>Baja</th></tr>
+          <tbody id="mx"></tbody>
+        </table>
+        <h3>Tiempo de registro</h3>
+        <div><div class="timer" id="timer">0:00</div><div class="muted" style="font-size:12.5px">Corre desde que empiezas a escribir hasta que creas el ticket. Se guarda para el tablero.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TICKETS -->
+  <section id="v-tickets" hidden>
+    <h1>Tickets</h1>
+    <p class="sub">Selecciona un ticket para asignarlo, cambiar su estado o registrar avances.</p>
+    <div class="panel">
+      <div class="filters">
+        <input id="q" type="search" placeholder="Buscar por número, asunto o solicitante" aria-label="Buscar">
+        <select id="fiSt" aria-label="Estado"><option value="">Todos los estados</option><option value="abiertos">Abiertos</option></select>
+        <select id="fiPr" aria-label="Prioridad"><option value="">Todas las prioridades</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select>
+        <select id="fiTec" aria-label="Técnico"><option value="">Todos los técnicos</option><option value="-">Sin asignar</option></select>
+      </div>
+      <div class="tablewrap"><table class="list">
+        <thead><tr><th>N.º</th><th>Asunto</th><th>Prioridad</th><th>Estado</th><th>Técnico</th><th>Creado</th><th>ANS solución</th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table></div>
+      <div class="empty" id="tbEmpty" hidden>No hay tickets con esos filtros.</div>
+    </div>
+  </section>
+
+  <!-- CONOCIMIENTO -->
+  <section id="v-conocimiento" hidden>
+    <h1>Base de conocimiento</h1>
+    <p class="sub">Soluciones documentadas a los casos frecuentes. Los técnicos las consultan antes de escalar.</p>
+    <div class="actions" style="margin-bottom:14px">
+      <input id="kq" type="search" placeholder="Buscar solución" aria-label="Buscar solución" style="flex:1 1 220px;width:auto">
+      <button class="btn ghost" id="btnKbNew">Nuevo artículo</button>
+    </div>
+    <form class="panel" id="fKb" hidden style="margin-bottom:14px">
+      <div class="row">
+        <label for="kTitle">Título<input id="kTitle" required></label>
+        <label for="kCat">Categoría<select id="kCat"></select></label>
+      </div>
+      <label for="kSteps">Pasos de solución <small>Uno por línea</small><textarea id="kSteps" required></textarea></label>
+      <div class="actions"><button class="btn" type="submit">Guardar artículo</button><button class="btn quiet" type="button" id="btnKbCancel">Cancelar</button></div>
+    </form>
+    <div class="kb" id="kbList"></div>
+  </section>
+
+  <!-- TABLERO -->
+  <section id="v-tablero" hidden>
+    <h1>Tablero de indicadores</h1>
+    <p class="sub" id="dashSub"></p>
+    <div class="kpis" id="kpis"></div>
+    <div class="charts">
+      <div class="panel chart"><h3>Tickets por estado</h3><div class="box"><canvas id="cEst" aria-label="Tickets por estado"></canvas></div></div>
+      <div class="panel chart"><h3>Tickets por prioridad</h3><div class="box"><canvas id="cPri" aria-label="Tickets por prioridad"></canvas></div></div>
+      <div class="panel chart"><h3>Tickets por categoría</h3><div class="box"><canvas id="cCat" aria-label="Tickets por categoría"></canvas></div></div>
+      <div class="panel chart"><h3>Carga por técnico (abiertos y resueltos)</h3><div class="box"><canvas id="cTec" aria-label="Carga por técnico"></canvas></div></div>
+    </div>
+    <div class="actions" style="margin-top:16px">
+      <button class="btn quiet" id="btnCsv">Copiar datos (CSV para Excel)</button>
+      <span class="muted" id="csvMsg"></span>
+    </div>
+    <textarea id="csvOut" hidden aria-label="Datos CSV" style="margin-top:10px;min-height:120px;font-family:var(--mono);font-size:12px"></textarea>
+  </section>
+
+  <p class="foot">Prototipo académico · Proyecto HelpDesk TI · Gerencia de Proyectos Informáticos, CUN · 2026. Los datos se guardan solo en este navegador.</p>
+</main>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Detalle del ticket"></aside>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+(function(){
+const KEY='helpdeskti.v1';
+const AREAS=['Contabilidad','Ventas','Talento humano','Logística','Gerencia','Compras','Servicio al cliente'];
+const CATS=['Hardware','Software','Red e internet','Accesos y contraseñas','Correo y Teams','Impresoras'];
+const TECS=['Andrés (N1)','Paola (N1)','Camilo (N2)','Diana (N2)'];
+const STATES=['Nuevo','Asignado','En curso','En espera','Resuelto','Cerrado'];
+const OPEN=['Nuevo','Asignado','En curso','En espera'];
+const IMP=[['Alto','Toda un área o la empresa'],['Medio','Varios usuarios'],['Bajo','Un usuario']];
+const URG=[['Alta','Detiene el trabajo'],['Media','Afecta, hay alternativa'],['Baja','Puede esperar']];
+const MATRIX={Alto:{Alta:'P1',Media:'P2',Baja:'P3'},Medio:{Alta:'P2',Media:'P3',Baja:'P4'},Bajo:{Alta:'P3',Media:'P4',Baja:'P4'}};
+const PN={P1:'Crítica',P2:'Alta',P3:'Media',P4:'Baja'};
+const SLA={P1:{r:1,s:4},P2:{r:2,s:8},P3:{r:4,s:24},P4:{r:8,s:72}};
+const H=3600e3;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- datos ----------
+let db=null;
+function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return null}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+function rng(seed){return()=>{seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296}}
+const KB0=[
+ ['Restablecer contraseña de Windows','Accesos y contraseñas',['Validar la identidad del usuario (cédula y jefe inmediato).','Abrir la consola de usuarios y buscar la cuenta.','Asignar contraseña temporal y marcar "cambiar al iniciar sesión".','Confirmar con el usuario que pudo ingresar.']],
+ ['La impresora no imprime','Impresoras',['Verificar que la impresora esté encendida y sin atascos.','Revisar la cola de impresión y cancelar trabajos detenidos.','Reiniciar el servicio "Cola de impresión".','Imprimir página de prueba.']],
+ ['Conectarse a la VPN desde casa','Red e internet',['Abrir el cliente VPN corporativo.','Ingresar usuario de dominio y código del autenticador.','Si falla, verificar la conexión a internet del hogar.','Escalar a N2 si el error persiste.']],
+ ['Outlook no sincroniza el correo','Correo y Teams',['Verificar el estado "Conectado" en la barra inferior.','Cerrar Outlook y abrirlo en modo seguro.','Reparar el perfil desde Panel de control > Correo.','Probar en Outlook web para descartar el buzón.']],
+ ['Equipo muy lento','Hardware',['Revisar uso de CPU, memoria y disco en el Administrador de tareas.','Cerrar programas de inicio innecesarios.','Ejecutar limpieza de disco y actualizaciones pendientes.','Si el disco está al 100 %, programar revisión de hardware.']],
+ ['Instalar software autorizado','Software',['Confirmar que el software está en el catálogo aprobado.','Verificar la licencia disponible.','Instalar desde el repositorio interno.','Registrar la instalación en el inventario.']],
+ ['Sin acceso a carpeta compartida','Accesos y contraseñas',['Confirmar la ruta exacta de la carpeta.','Verificar que el usuario esté en el grupo de permisos.','Solicitar aprobación al dueño de la carpeta.','Agregar al grupo y pedir cerrar e iniciar sesión.']],
+ ['No funciona la cámara en Teams','Correo y Teams',['Revisar en Configuración > Dispositivos que la cámara esté seleccionada.','Verificar permisos de cámara en Privacidad de Windows.','Cerrar otras apps que usen la cámara.','Actualizar el controlador.']],
+ ['Sin conexión a la red Wi-Fi','Red e internet',['Olvidar la red y volver a conectar.','Verificar que otros equipos sí naveguen.','Ejecutar el solucionador de problemas de red.','Si afecta a varios, revisar el punto de acceso.']],
+ ['Escáner no envía al correo','Impresoras',['Verificar la dirección de correo configurada en el equipo.','Probar envío a carpeta de red.','Revisar credenciales SMTP del escáner.','Escalar a N2 si cambió la contraseña del buzón.']],
+];
+const CASES=[
+ ['No puedo iniciar sesión en Windows','Accesos y contraseñas','Bajo','Alta'],['Se cayó el internet de todo el piso 2','Red e internet','Alto','Alta'],
+ ['La impresora de contabilidad no imprime','Impresoras','Medio','Media'],['Outlook no descarga correos nuevos','Correo y Teams','Bajo','Media'],
+ ['Equipo muy lento al abrir Excel','Hardware','Bajo','Baja'],['Instalar Adobe Acrobat','Software','Bajo','Baja'],
+ ['El sistema de facturación no abre','Software','Alto','Alta'],['Sin acceso a carpeta compartida de ventas','Accesos y contraseñas','Bajo','Media'],
+ ['Pantalla del portátil parpadea','Hardware','Bajo','Media'],['VPN no conecta desde casa','Red e internet','Bajo','Alta'],
+ ['Crear usuario para colaborador nuevo','Accesos y contraseñas','Bajo','Media'],['Teams no muestra la cámara','Correo y Teams','Bajo','Baja'],
+ ['Escáner no envía al correo','Impresoras','Medio','Baja'],['Wi-Fi lento en sala de juntas','Red e internet','Medio','Media'],
+ ['Teclado con teclas dañadas','Hardware','Bajo','Baja'],['Actualizar Office','Software','Bajo','Baja'],
+ ['Correo rechaza adjuntos grandes','Correo y Teams','Bajo','Media'],['Bloqueo de cuenta por intentos fallidos','Accesos y contraseñas','Bajo','Alta'],
+ ['Servidor de archivos no responde','Red e internet','Alto','Media'],['Impresora atasca papel','Impresoras','Bajo','Media'],
+];
+const NAMES=['Laura Gómez','Juan Pérez','Marta Ruiz','Carlos Díaz','Sofía Herrera','Felipe Rojas','Ana Castro','Diego Mora','Valentina León','Jorge Silva','Camila Ortiz','Andrés Vargas'];
+function seed(){
+  const r=rng(20261104), now=Date.now(), T=[];
+  for(let i=0;i<40;i++){
+    const c=CASES[Math.floor(r()*CASES.length)], prio=MATRIX[c[2]][c[3]];
+    const dayBack=Math.floor(r()*6), hr=8+Math.floor(r()*9);
+    const d=new Date(now-dayBack*24*H);d.setHours(hr,Math.floor(r()*60),0,0);
+    let created=d.getTime(); if(created>now-0.5*H) created=now-(1+r()*3)*H;
+    const t={id:i+1,type:c[1]==='Software'&&/Instalar|Crear|Actualizar/.test(c[0])?'Solicitud de servicio':'Incidencia',user:NAMES[Math.floor(r()*NAMES.length)],area:AREAS[Math.floor(r()*AREAS.length)],cat:c[1],title:c[0],desc:'',imp:c[2],urg:c[3],prio,created,regSec:55+Math.round(r()*110),tech:'',state:'Nuevo',responded:null,resolved:null,closed:null,waitMs:0,waitStart:null,hist:[{t:created,m:'Ticket creado ('+prio+')'}],demo:true};
+    const age=(now-created)/H, sla=SLA[prio], roll=r();
+    if(age>0.3||roll>0.2){t.tech=TECS[Math.floor(r()*TECS.length)];t.responded=created+Math.min(age,sla.r*(0.3+r()*0.9))*H;t.state='Asignado';t.hist.push({t:t.responded,m:'Asignado a '+t.tech})}
+    if(t.tech){
+      const solH=sla.s*(0.25+r()*(roll<0.12?1.6:0.9));
+      if(created+solH*H<now&&roll>0.15){t.resolved=created+solH*H;t.state='Resuelto';t.hist.push({t:t.resolved,m:'Resuelto'});
+        if(t.resolved+4*H<now&&r()>0.25){t.closed=t.resolved+(2+r()*10)*H;if(t.closed>now)t.closed=now;t.state='Cerrado';t.hist.push({t:t.closed,m:'Cerrado: usuario confirma solución'})}}
+      else if(r()>0.5){t.state='En curso';t.hist.push({t:t.responded+0.2*H,m:'En curso'})}
+    }
+    T.push(t);
+  }
+  T.sort((a,b)=>a.created-b.created);T.forEach((t,i)=>t.id=i+1);
+  return {seq:T.length,tickets:T,kb:KB0.map((k,i)=>({id:i+1,title:k[0],cat:k[1],steps:k[2]})),demo:true};
+}
+db=load(); if(!db||!Array.isArray(db.tickets)){db=seed();save()}
+let CDB=null, USER=null, MODE='local', ME=null, CAN_WRITE=true, IS_OWNER=true;
+const clone=o=>JSON.parse(JSON.stringify(o));
+function setMode(s,txt){const m=$('#mode');m.dataset.s=s;m.textContent=txt}
+setMode('wait','Conectando…');
+async function persistT(t){
+  if(MODE!=='shared'){save();return true}
+  try{await CDB.collection('tickets').doc(fmtId(t.id)).set(clone(t));return true}
+  catch(e){writeFail(e);return false}}
+async function persistK(k){
+  if(MODE!=='shared'){save();return true}
+  try{await CDB.collection('kb').doc('KB-'+String(k.id).padStart(3,'0')).set(clone(k));return true}
+  catch(e){writeFail(e);return false}}
+function writeFail(e){const c=e&&e.code;
+  if(c==='invalid_argument'){CAN_WRITE=false;applyWrite();toast('No tienes permiso para modificar los datos compartidos.')}
+  else if(c==='quota_exceeded')toast('La base de datos está llena. Borra tickets antiguos para registrar nuevos.');
+  else toast('No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.')}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function nextId(){
+  const maxLocal=Math.max(0,...db.tickets.map(t=>t.id));
+  if(MODE!=='shared'){db.seq=Math.max(db.seq||0,maxLocal)+1;return db.seq}
+  const ref=CDB.doc('meta/seq');
+  for(let i=0;i<6;i++){
+    try{const r=await ref.acquire({holder:ME||('tab-'+Math.random().toString(36).slice(2)),ttlMs:4000});
+      if(r.acquired){const s=await ref.get();const n=Math.max(s.exists?(s.data().n||0):0,maxLocal)+1;await ref.set({n});return n}}catch(e){}
+    await sleep(300+Math.random()*500)}
+  return maxLocal+1}
+function applyWrite(){const ro=MODE==='shared'&&!CAN_WRITE;$('#roNote').hidden=!ro;
+  document.querySelectorAll('#fNew input,#fNew select,#fNew textarea,#fNew button,#btnKbNew').forEach(el=>el.disabled=ro)}
+async function connect(){
+  let cdb=null;
+  try{cdb=window.claude&&window.claude.use?await window.claude.use('db'):null}catch(e){cdb=null}
+  if(!cdb){setMode('off','Solo en este navegador');return}
+  CDB=cdb;MODE='shared';db={seq:0,tickets:[],kb:[]};
+  try{USER=await window.claude.use('user')}catch(e){USER=null}
+  if(USER){try{ME=await USER.id()}catch(e){}try{IS_OWNER=!!USER.isOwner()}catch(e){IS_OWNER=false}
+    try{const w=await USER.can('data.write');if(w===false)CAN_WRITE=false}catch(e){}}
+  else IS_OWNER=false;
+  applyWrite();rerender();
+  let ok=false;const timer=setTimeout(()=>{if(!ok)setMode('off','Sin conexión con la base de datos')},10000);
+  CDB.collection('tickets').onSnapshot(snap=>{
+    db.tickets=snap.docs.map(d=>clone(d.data())).sort((a,b)=>a.id-b.id);
+    if(!snap.metadata.fromCache){ok=true;clearTimeout(timer);setMode('on','En línea · datos compartidos')}
+    rerender()},e=>{clearTimeout(timer);setMode('off','Sin conexión con la base de datos')});
+  CDB.collection('kb').onSnapshot(snap=>{db.kb=snap.docs.map(d=>clone(d.data())).sort((a,b)=>a.id-b.id);if(!$('#v-conocimiento').hidden)renderKb()},()=>{});
+}
+function rerender(){refreshCommon();
+  if(!$('#v-tickets').hidden)renderList();
+  if(!$('#v-tablero').hidden)renderDash();
+  if(!$('#v-conocimiento').hidden)renderKb();
+  if(cur){const n=db.tickets.find(t=>t.id===cur.id);const note=$('#dNote');
+    if(n&&(!note||(!note.value&&document.activeElement!==note)))openT(n.id);else if(n)cur=n}}
+
+
+// ---------- utilidades ----------
+const fmtId=n=>'HD-'+String(n).padStart(4,'0');
+const fmtDT=ms=>{const d=new Date(ms);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',hour12:false})};
+const fmtH=h=>h<1?Math.round(h*60)+' min':(h<10?h.toFixed(1):Math.round(h))+' h';
+const prioTag=p=>`<span class="prio ${p}">${p} · ${PN[p]}</span>`;
+function elapsedH(t){const end=t.resolved||Date.now();let w=t.waitMs||0;if(t.waitStart&&!t.resolved)w+=Date.now()-t.waitStart;return Math.max(0,(end-t.created-w)/H)}
+function slaInfo(t){const lim=SLA[t.prio].s,e=elapsedH(t);
+  if(t.resolved)return e<=lim?{c:'ok',txt:'Cumplido · '+fmtH(e),ok:true}:{c:'bad',txt:'Incumplido · '+fmtH(e),ok:false};
+  if(t.state==='En espera')return {c:'warn',txt:'En pausa · quedan '+fmtH(Math.max(0,lim-e))};
+  const left=lim-e; if(left<0)return {c:'bad',txt:'Vencido hace '+fmtH(-left)};
+  return {c:left<lim*0.25?'warn':'ok',txt:'Quedan '+fmtH(left)}}
+function toast(m){const el=$('#toast');el.textContent=m;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
+
+// ---------- vistas ----------
+const VIEWS=['nuevo','tickets','conocimiento','tablero'];
+function route(){if(typeof cur!=='undefined'&&cur)closeT();let v=location.hash.slice(1);if(!VIEWS.includes(v))v='tickets';
+  VIEWS.forEach(x=>$('#v-'+x).hidden=x!==v);
+  document.querySelectorAll('nav a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  if(v==='tickets')renderList(); if(v==='conocimiento')renderKb(); if(v==='tablero')renderDash();}
+function refreshCommon(){const n=db.tickets.filter(t=>OPEN.includes(t.state)).length;$('#nOpen').textContent=n?String(n):'';
+  const b=$('#demoBanner'), demo=db.tickets.filter(t=>t.demo).length; b.hidden=!demo;
+  $('#demoTxt').textContent=`Hay ${demo} tickets de ejemplo generados para demostrar el prototipo.`;
+  $('#resetBox').hidden=MODE==='shared'&&!IS_OWNER}
+
+// formulario
+function opts(sel,arr){$(sel).innerHTML=arr.map(a=>`<option>${esc(a)}</option>`).join('')}
+opts('#fArea',AREAS);opts('#fCat',CATS);opts('#kCat',CATS);
+TECS.forEach(t=>$('#fiTec').insertAdjacentHTML('beforeend',`<option>${esc(t)}</option>`));
+STATES.forEach(s=>$('#fiSt').insertAdjacentHTML('beforeend',`<option>${s}</option>`));
+function seg(id,name,arr,def){$(id).innerHTML=arr.map(([v,h],i)=>`<input type="radio" name="${name}" id="${name}${i}" value="${v}" ${v===def?'checked':''}><label for="${name}${i}"><b>${v}</b><small>${h}</small></label>`).join('')}
+seg('#segImp','imp',IMP,'Bajo');seg('#segUrg','urg',URG,'Media');
+$('#mx').innerHTML=['Alto','Medio','Bajo'].map(i=>`<tr><th>${i}</th>${['Alta','Media','Baja'].map(u=>`<td data-k="${i}|${u}" class="">${MATRIX[i][u]}</td>`).join('')}</tr>`).join('');
+function preview(){const i=document.querySelector('[name=imp]:checked').value,u=document.querySelector('[name=urg]:checked').value,p=MATRIX[i][u];
+  const el=$('#pvPrio');el.className='prio '+p;el.textContent=p+' · '+PN[p];
+  $('#pvSla').textContent=`Respuesta ${SLA[p].r} h · Solución ${SLA[p].s} h`;
+  document.querySelectorAll('#mx td').forEach(td=>td.classList.toggle('on',td.dataset.k===i+'|'+u))}
+let tStart=null,tInt=null;
+function tick(){const s=tStart?Math.floor((Date.now()-tStart)/1000):0;$('#timer').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+$('#fNew').addEventListener('input',e=>{if(!tStart&&e.target.matches('input:not([type=radio]),textarea')){tStart=Date.now();tInt=setInterval(tick,500)}preview()});
+$('#fNew').addEventListener('change',preview);
+$('#fNew').addEventListener('reset',()=>setTimeout(()=>{clearInterval(tInt);tStart=null;tick();preview();$('#fErr').hidden=true}));
+$('#fNew').addEventListener('submit',async e=>{e.preventDefault();if(MODE==='shared'&&!CAN_WRITE)return;
+  const user=$('#fUser').value.trim(),title=$('#fTitle').value.trim();
+  if(!user||!title){const er=$('#fErr');er.textContent='Escribe el nombre del solicitante y el asunto para crear el ticket.';er.hidden=false;(user?$('#fTitle'):$('#fUser')).focus();return}
+  const i=document.querySelector('[name=imp]:checked').value,u=document.querySelector('[name=urg]:checked').value,p=MATRIX[i][u],now=Date.now();
+  const btn=e.target.querySelector('[type=submit]');btn.disabled=true;const nid=await nextId();btn.disabled=false;
+  const t={id:nid,by:ME||null,type:$('#fType').value,user,area:$('#fArea').value,cat:$('#fCat').value,title,desc:$('#fDesc').value.trim(),imp:i,urg:u,prio:p,created:now,regSec:tStart?Math.round((now-tStart)/1000):null,tech:'',state:'Nuevo',responded:null,resolved:null,closed:null,waitMs:0,waitStart:null,hist:[{t:now,m:'Ticket creado ('+p+')'}]};
+  if(MODE!=='shared')db.tickets.push(t);const okw=await persistT(t);if(!okw)return;$('#fNew').reset();refreshCommon();
+  toast(`Ticket ${fmtId(t.id)} creado con prioridad ${p} · ${PN[p]}`);
+});
+preview();
+
+// lista
+['#q','#fiSt','#fiPr','#fiTec'].forEach(s=>$(s).addEventListener('input',renderList));
+function renderList(){const q=$('#q').value.toLowerCase(),st=$('#fiSt').value,pr=$('#fiPr').value,tc=$('#fiTec').value;
+  const rows=db.tickets.filter(t=>(!q||(fmtId(t.id)+' '+t.title+' '+t.user).toLowerCase().includes(q))&&(!st||(st==='abiertos'?OPEN.includes(t.state):t.state===st))&&(!pr||t.prio===pr)&&(!tc||(tc==='-'?!t.tech:t.tech===tc)))
+    .sort((a,b)=>(OPEN.includes(b.state)-OPEN.includes(a.state))||a.prio.localeCompare(b.prio)||b.created-a.created);
+  $('#tb').innerHTML=rows.map(t=>{const s=slaInfo(t);return `<tr class="trow" tabindex="0" data-id="${t.id}"><td class="id">${fmtId(t.id)}</td><td>${esc(t.title)}<div class="muted" style="font-size:12px">${esc(t.user)} · ${esc(t.area)}</div></td><td>${prioTag(t.prio)}</td><td><span class="st ${t.state.replace(' ','')}">${t.state}</span></td><td>${t.tech?esc(t.tech):'<span class="muted">Sin asignar</span>'}</td><td class="sla">${fmtDT(t.created)}</td><td class="sla ${s.c}">${s.txt}</td></tr>`}).join('');
+  const em=$('#tbEmpty');em.hidden=rows.length>0;em.textContent=db.tickets.length?'No hay tickets con esos filtros.':'Aún no hay tickets. Registra el primero en «Nuevo ticket».'}
+$('#tb').addEventListener('click',e=>{const r=e.target.closest('.trow');if(r)openT(+r.dataset.id)});
+$('#tb').addEventListener('keydown',e=>{if(e.key==='Enter'){const r=e.target.closest('.trow');if(r)openT(+r.dataset.id)}});
+
+// detalle
+let cur=null;
+function setState(t,ns){const now=Date.now();if(t.state===ns)return;
+  if(t.state==='En espera'&&t.waitStart){t.waitMs+=now-t.waitStart;t.waitStart=null}
+  if(ns==='En espera')t.waitStart=now;
+  if(ns!=='Nuevo'&&!t.responded)t.responded=now;
+  if(ns==='Resuelto'||ns==='Cerrado'){if(!t.resolved)t.resolved=now}else if(t.resolved){t.resolved=null;t.closed=null}
+  if(ns==='Cerrado')t.closed=now;
+  t.hist.push({t:now,m:'Estado: '+t.state+' → '+ns});t.state=ns}
+function openT(id){const t=db.tickets.find(x=>x.id===id);if(!t)return;cur=t;const s=slaInfo(t);
+  const kb=db.kb.filter(k=>k.cat===t.cat);
+  $('#drawer').innerHTML=`<header><div><span class="id">${fmtId(t.id)}</span> · <span class="muted">${esc(t.type)}</span><h2>${esc(t.title)}</h2></div><button class="btn quiet sm" id="dClose">Cerrar</button></header>
+  <div class="actions">${prioTag(t.prio)}<span class="st ${t.state.replace(' ','')}">${t.state}</span><span class="sla ${s.c}">${s.txt}</span></div>
+  <dl class="kv"><dt>Solicitante</dt><dd>${esc(t.user)} · ${esc(t.area)}</dd><dt>Categoría</dt><dd>${esc(t.cat)}</dd><dt>Impacto / urgencia</dt><dd>${t.imp} / ${t.urg}</dd><dt>ANS</dt><dd>Respuesta ${SLA[t.prio].r} h · Solución ${SLA[t.prio].s} h</dd><dt>Creado</dt><dd>${fmtDT(t.created)}</dd>${t.regSec?`<dt>Tiempo de registro</dt><dd>${t.regSec} s</dd>`:''}${t.by?'<dt>Registrado por</dt><dd id="dBy">…</dd>':''}</dl>
+  ${t.desc?`<p style="margin:0">${esc(t.desc)}</p>`:''}
+  <label for="dTech">Técnico asignado<select id="dTech"><option value="">Sin asignar</option>${TECS.map(x=>`<option ${x===t.tech?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
+  <div><div style="font-weight:500;font-size:13px;margin-bottom:6px">Estado</div><div class="states">${STATES.map(x=>`<button class="btn quiet sm" data-s="${x}" aria-pressed="${x===t.state}">${x}</button>`).join('')}</div>
+  <p class="muted" style="font-size:12.5px;margin:6px 0 0">En espera pausa el reloj del ANS mientras el usuario responde.</p></div>
+  <label for="dNote">Registrar avance<textarea id="dNote" placeholder="Qué se revisó o se hizo"></textarea></label>
+  <div><button class="btn sm" id="dAdd">Agregar al historial</button></div>
+  ${kb.length?`<div><div style="font-weight:500;font-size:13px;margin-bottom:6px">Soluciones sugeridas</div>${kb.map(k=>`<div style="font-size:13.5px">• <a href="#conocimiento" data-kb="${k.id}">${esc(k.title)}</a></div>`).join('')}</div>`:''}
+  <div><div style="font-weight:500;font-size:13px;margin-bottom:6px">Historial</div><ul class="hist">${t.hist.slice().reverse().map(h=>`<li><time>${fmtDT(h.t)}</time><span>${esc(h.m)}</span></li>`).join('')}</ul></div>`;
+  $('#drawer').hidden=false;$('#scrim').hidden=false;
+  if(t.by&&USER&&USER.profiles){USER.profiles([t.by]).then(ps=>{const el=$('#dBy');if(el)el.textContent=(ps&&ps[t.by]&&ps[t.by].name)||'Integrante del equipo'}).catch(()=>{const el=$('#dBy');if(el)el.textContent='Integrante del equipo'})}
+  if(document.activeElement===document.body||!$('#drawer').contains(document.activeElement))$('#dClose').focus()}
+function closeT(){$('#drawer').hidden=true;$('#scrim').hidden=true;cur=null}
+$('#scrim').addEventListener('click',closeT);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cur)closeT()});
+$('#drawer').addEventListener('click',e=>{if(!cur)return;
+  if(e.target.id==='dClose')return closeT();
+  const sb=e.target.closest('[data-s]');if(sb){if(sb.dataset.s!=='Nuevo'&&!cur.tech&&sb.dataset.s!=='Nuevo'){toast('Asigna un técnico antes de cambiar el estado');return}setState(cur,sb.dataset.s);persistT(cur);openT(cur.id);renderList();refreshCommon();return}
+  if(e.target.id==='dAdd'){const v=$('#dNote').value.trim();if(!v)return;cur.hist.push({t:Date.now(),m:v});$('#dNote').value='';persistT(cur);openT(cur.id);return}
+  if(e.target.dataset.kb){closeT()}});
+$('#drawer').addEventListener('change',e=>{if(e.target.id!=='dTech'||!cur)return;const v=e.target.value;cur.tech=v;
+  cur.hist.push({t:Date.now(),m:v?'Asignado a '+v:'Asignación retirada'});if(v&&cur.state==='Nuevo')setState(cur,'Asignado');persistT(cur);openT(cur.id);renderList();refreshCommon()});
+
+// conocimiento
+$('#kq').addEventListener('input',renderKb);
+function renderKb(){const q=$('#kq').value.toLowerCase();
+  const L=db.kb.filter(k=>!q||(k.title+' '+k.cat+' '+k.steps.join(' ')).toLowerCase().includes(q));
+  $('#kbList').innerHTML=!db.kb.length?'<div class="empty">La base de conocimiento está vacía. Agrega el primer artículo con «Nuevo artículo».</div>':L.length?L.map(k=>`<article class="panel"><span class="cat">${esc(k.cat)} · KB-${String(k.id).padStart(3,'0')}</span><h3>${esc(k.title)}</h3><ol>${k.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></article>`).join(''):'<div class="empty">No hay artículos que coincidan.</div>'}
+$('#btnKbNew').addEventListener('click',()=>{$('#fKb').hidden=false;$('#kTitle').focus()});
+$('#btnKbCancel').addEventListener('click',()=>{$('#fKb').reset();$('#fKb').hidden=true});
+$('#fKb').addEventListener('submit',e=>{e.preventDefault();const ti=$('#kTitle').value.trim(),st=$('#kSteps').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!ti||!st.length){toast('Escribe el título y al menos un paso');return}
+  const k={id:Math.max(0,...db.kb.map(k=>k.id))+1,title:ti,cat:$('#kCat').value,steps:st};if(MODE!=='shared')db.kb.push(k);persistK(k);$('#fKb').reset();$('#fKb').hidden=true;renderKb();toast('Artículo guardado')});
+
+// tablero
+const charts={};
+if(window.Chart){Chart.defaults.font.family='"IBM Plex Sans",system-ui,sans-serif';}
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function bar(id,labels,sets,horizontal){if(!window.Chart)return;
+  const fg=css('--muted'),grid=css('--line');
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id),{type:'bar',data:{labels,datasets:sets.map(s=>({borderRadius:3,maxBarThickness:42,...s}))},
+    options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:sets.length>1,labels:{color:fg,boxWidth:12,font:{family:'IBM Plex Sans'}}}},
+      scales:{x:{stacked:sets.length>1,ticks:{color:fg,precision:0,font:{family:'IBM Plex Sans'}},grid:{color:horizontal?grid:'transparent'}},y:{stacked:sets.length>1,ticks:{color:fg,precision:0,font:{family:'IBM Plex Sans'}},grid:{color:horizontal?'transparent':grid},beginAtZero:true}}}})}
+function renderDash(){const T=db.tickets,n=T.length;
+  const open=T.filter(t=>OPEN.includes(t.state)),res=T.filter(t=>t.resolved);
+  const ok=res.filter(t=>slaInfo(t).ok).length, overdue=open.filter(t=>slaInfo(t).c==='bad').length;
+  const reg=T.filter(t=>t.regSec),avgReg=reg.length?reg.reduce((a,t)=>a+t.regSec,0)/reg.length:0;
+  const avgSol=res.length?res.reduce((a,t)=>a+elapsedH(t),0)/res.length:0;
+  const resp=T.filter(t=>t.responded),avgResp=resp.length?resp.reduce((a,t)=>a+(t.responded-t.created)/H,0)/resp.length:0;
+  $('#dashSub').textContent=n?`${n} tickets registrados entre el ${fmtDT(Math.min(...T.map(t=>t.created)))} y el ${fmtDT(Math.max(...T.map(t=>t.created)))}.`:'Aún no hay tickets. Registra el primero en "Nuevo ticket".';
+  const k=(l,v,h)=>`<div class="panel kpi"><span class="lbl">${l}</span><span class="val">${v}</span><span class="hint">${h}</span></div>`;
+  $('#kpis').innerHTML=k('Tickets registrados',n,`${open.length} abiertos · ${res.length} resueltos o cerrados`)
+   +k('Con prioridad definida',n?'100 %':'—','Calculada con impacto × urgencia')
+   +k('Cumplimiento ANS',res.length?Math.round(ok/res.length*100)+' %':'—',`${ok} de ${res.length} resueltos dentro del plazo`)
+   +k('Tiempo de registro',reg.length?Math.round(avgReg)+' s':'—',`Promedio de ${reg.length} tickets cronometrados`)
+   +k('Tiempo de solución',res.length?fmtH(avgSol):'—',`Primera respuesta: ${resp.length?fmtH(avgResp):'—'} en promedio`)
+   +k('Abiertos vencidos',overdue,overdue?'Requieren atención inmediata':'Ningún ticket abierto fuera del ANS');
+  const cnt=(arr,key,vals)=>vals.map(v=>arr.filter(t=>t[key]===v).length);
+  const acc=css('--accent');
+  bar('cEst',STATES,[{data:cnt(T,'state',STATES),backgroundColor:acc}]);
+  bar('cPri',['P1 · Crítica','P2 · Alta','P3 · Media','P4 · Baja'],[{data:cnt(T,'prio',['P1','P2','P3','P4']),backgroundColor:[css('--p1'),css('--p2'),css('--p3'),css('--p4')]}]);
+  bar('cCat',CATS,[{data:cnt(T,'cat',CATS),backgroundColor:acc}],true);
+  bar('cTec',TECS,[{label:'Abiertos',data:cnt(open,'tech',TECS),backgroundColor:acc},{label:'Resueltos o cerrados',data:cnt(res,'tech',TECS),backgroundColor:css('--line')}]);
+}
+function csv(){const h=['Numero','Tipo','Solicitante','Area','Categoria','Asunto','Impacto','Urgencia','Prioridad','Estado','Tecnico','Creado','Registro_seg','Primera_respuesta_h','Solucion_h','ANS_solucion_h','Cumple_ANS','Simulado'];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  return [h.join(';')].concat(db.tickets.map(t=>[fmtId(t.id),t.type,t.user,t.area,t.cat,t.title,t.imp,t.urg,t.prio,t.state,t.tech,fmtDT(t.created),t.regSec??'',t.responded?((t.responded-t.created)/H).toFixed(2).replace('.',','):'',t.resolved?elapsedH(t).toFixed(2).replace('.',','):'',SLA[t.prio].s,t.resolved?(slaInfo(t).ok?'Si':'No'):'',t.demo?'Si':'No'].map(q).join(';'))).join('\n')}
+$('#btnCsv').addEventListener('click',()=>{const txt=csv(),out=$('#csvOut');
+  const fallback=()=>{out.hidden=false;out.value=txt;out.select();$('#csvMsg').textContent='Selecciona el texto y cópialo con Ctrl + C.'};
+  try{navigator.clipboard.writeText(txt).then(()=>{$('#csvMsg').textContent='Copiado. Pégalo en Excel con Ctrl + V.'},fallback)}catch(e){fallback()}});
+
+// reinicio
+const BTN='<button class="btn quiet sm" data-r="ask">Borrar datos y empezar piloto</button>';
+const ASK='<div class="confirm"><span>¿Borrar todos los tickets de ejemplo? La base de conocimiento se conserva.</span><button class="btn danger sm" data-r="yes">Sí, borrar</button><button class="btn quiet sm" data-r="no">Cancelar</button></div>';
+$('#resetBox').addEventListener('click',e=>{const r=e.target.dataset.r;if(!r)return;
+  if(r==='ask'){$('#resetBox').innerHTML=ASK;return}
+  if(r==='yes'){
+    if(MODE==='shared'){const ids=db.tickets.map(t=>fmtId(t.id));$('#resetBox').innerHTML='<span class="muted">Borrando…</span>';
+      (async()=>{for(const id of ids){try{await CDB.collection('tickets').doc(id).delete()}catch(e){}}try{await CDB.doc('meta/seq').set({n:0})}catch(e){}
+        $('#resetBox').innerHTML=BTN;toast('Datos borrados. Listo para la prueba piloto.')})();return}
+    db={seq:0,tickets:[],kb:db.kb,demo:false};save();refreshCommon();route();toast('Datos borrados. Listo para la prueba piloto.')}
+  $('#resetBox').innerHTML=BTN});
+
+window.addEventListener('hashchange',route);
+refreshCommon();route();connect();
+setInterval(()=>{if(!$('#v-tickets').hidden&&!cur)renderList()},60000);
+})();
+</script>
+
+</body>
+</html>
