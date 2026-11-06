@@ -6,6 +6,8 @@ Proyecto aplicado del curso **Gerencia de Proyectos Informáticos** – CUN, 202
 
 **Página en línea:** https://yulian-9.github.io/HelpDesk-TI/
 
+**Docente:** Osmany Aley Martínez
+
 ## Módulos
 
 1. **Registro de tickets.** Formulario con un cronómetro que mide el tiempo de registro.
@@ -18,7 +20,7 @@ Proyecto aplicado del curso **Gerencia de Proyectos Informáticos** – CUN, 202
 
 Abre la página en línea desde cualquier navegador. Todo el equipo ve los mismos tickets y los cambios aparecen en tiempo real.
 
-La base de datos trae 40 casos de prueba simulados. Para la prueba piloto, el gerente del proyecto los borra con **Borrar datos y empezar piloto**.
+La prueba piloto se realizó el 5 de noviembre de 2026 con casos reales del área de TI registrados por el equipo.
 
 ## Tecnologías
 
@@ -32,6 +34,6 @@ La base de datos trae 40 casos de prueba simulados. Para la prueba piloto, el ge
 | Integrante | Rol |
 |---|---|
 | Richard Julián Gálvez Caballero | Gerente del proyecto |
-| [Integrante 2] | Analista funcional |
-| [Integrante 3] | Desarrollador |
-| [Integrante 4] | QA y documentación |
+| Yanira Perea Castillo | Analista funcional |
+| Jhon Mayron Hinestroza Valencia | Desarrollador |
+| Milton Fabian Muñoz | QA y documentación |
