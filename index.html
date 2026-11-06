@@ -200,6 +200,8 @@ table.list{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
         <select id="fiSt" aria-label="Estado"><option value="">Todos los estados</option><option value="abiertos">Abiertos</option></select>
         <select id="fiPr" aria-label="Prioridad"><option value="">Todas las prioridades</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select>
         <select id="fiTec" aria-label="Técnico"><option value="">Todos los técnicos</option><option value="-">Sin asignar</option></select>
+        <select id="fiReg" aria-label="Registrado por"><option value="">Todos los integrantes</option></select>
+        <span class="muted" id="fCount" style="align-self:center;font-size:13px"></span>
       </div>
       <div class="tablewrap"><table class="list">
         <thead><tr><th>N.º</th><th>Asunto</th><th>Prioridad</th><th>Estado</th><th>Técnico</th><th>Creado</th><th>ANS solución</th></tr></thead>
@@ -423,12 +425,15 @@ $('#fNew').addEventListener('submit',async e=>{e.preventDefault();if(MODE==='sha
 preview();
 
 // lista
-['#q','#fiSt','#fiPr','#fiTec'].forEach(s=>$(s).addEventListener('input',renderList));
-function renderList(){const q=$('#q').value.toLowerCase(),st=$('#fiSt').value,pr=$('#fiPr').value,tc=$('#fiTec').value;
-  const rows=db.tickets.filter(t=>(!q||(fmtId(t.id)+' '+t.title+' '+t.user).toLowerCase().includes(q))&&(!st||(st==='abiertos'?OPEN.includes(t.state):t.state===st))&&(!pr||t.prio===pr)&&(!tc||(tc==='-'?!t.tech:t.tech===tc)))
+['#q','#fiSt','#fiPr','#fiTec','#fiReg'].forEach(s=>$(s).addEventListener('input',renderList));
+function fillReg(){const sel=$('#fiReg'),cur=sel.value,names=[...new Set(db.tickets.map(t=>t.by).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const key=names.join('|');if(sel.dataset.k===key)return;sel.dataset.k=key;
+  sel.innerHTML='<option value="">Todos los integrantes</option>'+names.map(n=>`<option>${esc(n)}</option>`).join('');sel.value=names.includes(cur)?cur:''}
+function renderList(){fillReg();const q=$('#q').value.toLowerCase(),st=$('#fiSt').value,pr=$('#fiPr').value,tc=$('#fiTec').value,rg=$('#fiReg').value;
+  const rows=db.tickets.filter(t=>(!q||(fmtId(t.id)+' '+t.title+' '+t.user).toLowerCase().includes(q))&&(!st||(st==='abiertos'?OPEN.includes(t.state):t.state===st))&&(!pr||t.prio===pr)&&(!tc||(tc==='-'?!t.tech:t.tech===tc))&&(!rg||t.by===rg))
     .sort((a,b)=>(OPEN.includes(b.state)-OPEN.includes(a.state))||a.prio.localeCompare(b.prio)||b.created-a.created);
-  $('#tb').innerHTML=rows.map(t=>{const s=slaInfo(t);return `<tr class="trow" tabindex="0" data-id="${t.id}"><td class="id">${fmtId(t.id)}</td><td>${esc(t.title)}<div class="muted" style="font-size:12px">${esc(t.user)} · ${esc(t.area)}</div></td><td>${prioTag(t.prio)}</td><td><span class="st ${t.state.replace(' ','')}">${t.state}</span></td><td>${t.tech?esc(t.tech):'<span class="muted">Sin asignar</span>'}</td><td class="sla">${fmtDT(t.created)}</td><td class="sla ${s.c}">${s.txt}</td></tr>`}).join('');
-  const em=$('#tbEmpty');em.hidden=rows.length>0;em.textContent=db.tickets.length?'No hay tickets con esos filtros.':'Aún no hay tickets. Registra el primero en «Nuevo ticket».'}
+  $('#tb').innerHTML=rows.map(t=>{const s=slaInfo(t);return `<tr class="trow" tabindex="0" data-id="${t.id}"><td class="id">${fmtId(t.id)}</td><td>${esc(t.title)}<div class="muted" style="font-size:12px">${esc(t.user)} · ${esc(t.area)}${t.by?' · Registró: '+esc(t.by):''}</div></td><td>${prioTag(t.prio)}</td><td><span class="st ${t.state.replace(' ','')}">${t.state}</span></td><td>${t.tech?esc(t.tech):'<span class="muted">Sin asignar</span>'}</td><td class="sla">${fmtDT(t.created)}</td><td class="sla ${s.c}">${s.txt}</td></tr>`}).join('');
+  const em=$('#tbEmpty');em.hidden=rows.length>0;$('#fCount').textContent=rows.length===db.tickets.length?`${rows.length} tickets`:`${rows.length} de ${db.tickets.length} tickets`;em.textContent=db.tickets.length?'No hay tickets con esos filtros.':'Aún no hay tickets. Registra el primero en «Nuevo ticket».'}
 $('#tb').addEventListener('click',e=>{const r=e.target.closest('.trow');if(r)openT(+r.dataset.id)});
 $('#tb').addEventListener('keydown',e=>{if(e.key==='Enter'){const r=e.target.closest('.trow');if(r)openT(+r.dataset.id)}});
 
@@ -510,9 +515,9 @@ function renderDash(){const T=db.tickets,n=T.length;
   bar('cCat',CATS,[{data:cnt(T,'cat',CATS),backgroundColor:acc}],true);
   bar('cTec',TECS,[{label:'Abiertos',data:cnt(open,'tech',TECS),backgroundColor:acc},{label:'Resueltos o cerrados',data:cnt(res,'tech',TECS),backgroundColor:css('--line')}]);
 }
-function csv(){const h=['Numero','Tipo','Solicitante','Area','Categoria','Asunto','Impacto','Urgencia','Prioridad','Estado','Tecnico','Creado','Registro_seg','Primera_respuesta_h','Solucion_h','ANS_solucion_h','Cumple_ANS','Simulado'];
+function csv(){const h=['Numero','Registrado_por','Tipo','Solicitante','Area','Categoria','Asunto','Impacto','Urgencia','Prioridad','Estado','Tecnico','Creado','Registro_seg','Primera_respuesta_h','Solucion_h','ANS_solucion_h','Cumple_ANS','Simulado'];
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  return [h.join(';')].concat(db.tickets.map(t=>[fmtId(t.id),t.type,t.user,t.area,t.cat,t.title,t.imp,t.urg,t.prio,t.state,t.tech,fmtDT(t.created),t.regSec??'',t.responded?((t.responded-t.created)/H).toFixed(2).replace('.',','):'',t.resolved?elapsedH(t).toFixed(2).replace('.',','):'',SLA[t.prio].s,t.resolved?(slaInfo(t).ok?'Si':'No'):'',t.demo?'Si':'No'].map(q).join(';'))).join('\n')}
+  return [h.join(';')].concat(db.tickets.map(t=>[fmtId(t.id),t.by||'',t.type,t.user,t.area,t.cat,t.title,t.imp,t.urg,t.prio,t.state,t.tech,fmtDT(t.created),t.regSec??'',t.responded?((t.responded-t.created)/H).toFixed(2).replace('.',','):'',t.resolved?elapsedH(t).toFixed(2).replace('.',','):'',SLA[t.prio].s,t.resolved?(slaInfo(t).ok?'Si':'No'):'',t.demo?'Si':'No'].map(q).join(';'))).join('\n')}
 $('#btnCsv').addEventListener('click',()=>{const txt=csv(),out=$('#csvOut');
   const fallback=()=>{out.hidden=false;out.value=txt;out.select();$('#csvMsg').textContent='Selecciona el texto y cópialo con Ctrl + C.'};
   try{navigator.clipboard.writeText(txt).then(()=>{$('#csvMsg').textContent='Copiado. Pégalo en Excel con Ctrl + V.'},fallback)}catch(e){fallback()}});
